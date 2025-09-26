@@ -1,3 +1,5 @@
+import jsPDF from 'jspdf';
+import 'jspdf/dist/polyfills.es.js'; // Required for AcroForm checkboxes
 import { AppState, LiftType, LiftState, CompetitionDetails } from '../types';
 import { getPlateBreakdown } from './calculator';
 
@@ -57,12 +59,6 @@ export const exportToCSV = (state: AppState) => {
 };
 
 export const exportToPDF = (state: AppState): Blob => {
-    const { jsPDF } = (window as any).jspdf;
-    if (!jsPDF) {
-        alert("PDF library is not loaded.");
-        return new Blob();
-    }
-
     const { details, equipment, lifts } = state;
     const doc = new jsPDF('portrait', 'mm', 'a4');
     
@@ -293,12 +289,6 @@ export const exportToPDF = (state: AppState): Blob => {
 
 
 export const exportToMobilePDF = (state: AppState): Blob => {
-    const { jsPDF } = (window as any).jspdf;
-    if (!jsPDF) {
-        alert("PDF library is not loaded.");
-        return new Blob();
-    }
-
     const { details, equipment, lifts } = state;
     const doc = new jsPDF('portrait', 'mm', 'a4');
     
@@ -548,6 +538,10 @@ export const exportToMobilePDF = (state: AppState): Blob => {
 
 
 export const savePdf = (blob: Blob, fileName: string) => {
+    if (blob.size === 0) {
+        alert("Sorry, an error occurred while generating the PDF. Please try again.");
+        return;
+    }
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -559,6 +553,10 @@ export const savePdf = (blob: Blob, fileName: string) => {
 };
 
 export const sharePdf = async (blob: Blob, fileName: string, details: CompetitionDetails) => {
+    if (blob.size === 0) {
+        alert("Sorry, an error occurred while generating the PDF. It cannot be shared.");
+        return;
+    }
     const file = new File([blob], fileName, { type: 'application/pdf' });
     const shareData = {
         files: [file],
