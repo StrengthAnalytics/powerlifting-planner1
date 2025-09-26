@@ -1,4 +1,4 @@
-import { AppState, LiftType, LiftState } from '../types';
+import { AppState, LiftType, LiftState, CompetitionDetails } from '../types';
 import { getPlateBreakdown } from './calculator';
 
 export const exportToCSV = (state: AppState) => {
@@ -56,11 +56,11 @@ export const exportToCSV = (state: AppState) => {
     URL.revokeObjectURL(url);
 };
 
-export const exportToPDF = (state: AppState) => {
+export const exportToPDF = (state: AppState): Blob => {
     const { jsPDF } = (window as any).jspdf;
     if (!jsPDF) {
         alert("PDF library is not loaded.");
-        return;
+        return new Blob();
     }
 
     const { details, equipment, lifts } = state;
@@ -288,39 +288,15 @@ export const exportToPDF = (state: AppState) => {
     drawLiftSection('Bench Press', 'bench');
     drawLiftSection('Deadlift', 'deadlift');
 
-    const fileName = `${details.lifterName || 'Lifter'}_Competition_Plan.pdf`;
-
-    try {
-        const pdfBlob = doc.output('blob');
-        const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-        
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-             navigator.share({
-                files: [pdfFile],
-                title: 'Powerlifting Competition Plan',
-                text: `Here is the competition plan for ${details.lifterName || 'Lifter'}.`,
-            }).catch((error) => {
-                if (error.name !== 'AbortError') {
-                    console.error('Error sharing PDF:', error);
-                }
-            });
-        } else {
-            // Fallback for desktop or unsupported browsers
-            doc.save(fileName);
-        }
-    } catch (error) {
-        console.error("Error exporting PDF:", error);
-        // Fallback to original method in case of any error
-        doc.save(fileName);
-    }
+    return doc.output('blob');
 };
 
 
-export const exportToMobilePDF = (state: AppState) => {
+export const exportToMobilePDF = (state: AppState): Blob => {
     const { jsPDF } = (window as any).jspdf;
     if (!jsPDF) {
         alert("PDF library is not loaded.");
-        return;
+        return new Blob();
     }
 
     const { details, equipment, lifts } = state;
@@ -567,29 +543,41 @@ export const exportToMobilePDF = (state: AppState) => {
     drawMobileLiftPage('Bench Press', 'bench', lifts.bench);
     drawMobileLiftPage('Deadlift', 'deadlift', lifts.deadlift);
 
-    const fileName = `${details.lifterName || 'Lifter'}_Competition_Plan_Mobile.pdf`;
-    
-    try {
-        const pdfBlob = doc.output('blob');
-        const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+    return doc.output('blob');
+};
 
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-             navigator.share({
-                files: [pdfFile],
-                title: 'Powerlifting Competition Plan',
-                text: `Here is the competition plan for ${details.lifterName || 'Lifter'}.`,
-            }).catch((error) => {
-                if (error.name !== 'AbortError') {
-                    console.error('Error sharing PDF:', error);
-                }
-            });
-        } else {
-            // Fallback for desktop or unsupported browsers
-            doc.save(fileName);
+
+export const savePdf = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
+export const sharePdf = async (blob: Blob, fileName: string, details: CompetitionDetails) => {
+    const file = new File([blob], fileName, { type: 'application/pdf' });
+    const shareData = {
+        files: [file],
+        title: 'Powerlifting Competition Plan',
+        text: `Here is the competition plan for ${details.lifterName || 'Lifter'}.`,
+    };
+
+    if (navigator.canShare && navigator.canShare(shareData)) {
+        try {
+            await navigator.share(shareData);
+        } catch (error) {
+            if ((error as Error).name !== 'AbortError') {
+                console.error('Error sharing PDF:', error);
+                // Fallback to saving if sharing fails for a reason other than user cancellation
+                savePdf(blob, fileName);
+            }
         }
-    } catch (error) {
-        console.error("Error exporting Mobile PDF:", error);
-        // Fallback to original method in case of any error
-        doc.save(fileName);
+    } else {
+        console.warn("Web Share API cannot share these files, falling back to download.");
+        savePdf(blob, fileName);
     }
 };
