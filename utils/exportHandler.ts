@@ -289,7 +289,30 @@ export const exportToPDF = (state: AppState) => {
     drawLiftSection('Deadlift', 'deadlift');
 
     const fileName = `${details.lifterName || 'Lifter'}_Competition_Plan.pdf`;
-    doc.save(fileName);
+
+    try {
+        const pdfBlob = doc.output('blob');
+        const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+             navigator.share({
+                files: [pdfFile],
+                title: 'Powerlifting Competition Plan',
+                text: `Here is the competition plan for ${details.lifterName || 'Lifter'}.`,
+            }).catch((error) => {
+                if (error.name !== 'AbortError') {
+                    console.error('Error sharing PDF:', error);
+                }
+            });
+        } else {
+            // Fallback for desktop or unsupported browsers
+            doc.save(fileName);
+        }
+    } catch (error) {
+        console.error("Error exporting PDF:", error);
+        // Fallback to original method in case of any error
+        doc.save(fileName);
+    }
 };
 
 
@@ -545,5 +568,28 @@ export const exportToMobilePDF = (state: AppState) => {
     drawMobileLiftPage('Deadlift', 'deadlift', lifts.deadlift);
 
     const fileName = `${details.lifterName || 'Lifter'}_Competition_Plan_Mobile.pdf`;
-    doc.save(fileName);
+    
+    try {
+        const pdfBlob = doc.output('blob');
+        const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+             navigator.share({
+                files: [pdfFile],
+                title: 'Powerlifting Competition Plan',
+                text: `Here is the competition plan for ${details.lifterName || 'Lifter'}.`,
+            }).catch((error) => {
+                if (error.name !== 'AbortError') {
+                    console.error('Error sharing PDF:', error);
+                }
+            });
+        } else {
+            // Fallback for desktop or unsupported browsers
+            doc.save(fileName);
+        }
+    } catch (error) {
+        console.error("Error exporting Mobile PDF:", error);
+        // Fallback to original method in case of any error
+        doc.save(fileName);
+    }
 };
