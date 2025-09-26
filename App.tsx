@@ -23,7 +23,7 @@ const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(initialAppState);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [canShare, setCanShare] = useState(false);
-  
+
   useEffect(() => {
     try {
       const savedDetails = localStorage.getItem('plp_details');
@@ -34,12 +34,10 @@ const App: React.FC = () => {
 
       setAppState(prev => ({ ...prev, details, equipment }));
 
-      if (navigator.share && typeof navigator.canShare === 'function') {
-        // Basic check is enough, specific file check will happen in the share handler
+      if ('share' in navigator) {
         setCanShare(true);
       }
 
-    // FIX: Corrected the try-catch block syntax. A missing block `{}` caused a cascade of scope errors.
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
     }
@@ -237,101 +235,80 @@ const App: React.FC = () => {
               className="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md shadow-sm transition-colors"
               aria-label="Reset the entire form"
             >
-              Reset Form
+              Full Reset
             </button>
           }
         >
-          {renderFormGroup("Event Name", "eventName", "e.g., National Championship")}
-          {renderFormGroup("Lifter Name", "lifterName", "Enter your name")}
+          {renderFormGroup("Event Name", "eventName", "e.g., National Championships")}
+          {renderFormGroup("Lifter Name", "lifterName", "e.g., John Doe")}
           {renderFormGroup("Weight Class", "weightClass", "e.g., 83kg")}
-          {renderFormGroup("Competition Date", "competitionDate", "", "date")}
-          {renderFormGroup("Weigh-in Time", "weighInTime", "", "time")}
+          {renderFormGroup("Competition Date", "competitionDate", "YYYY-MM-DD", "date")}
+          {renderFormGroup("Weigh-in Time", "weighInTime", "HH:MM", "time")}
         </Section>
 
         <Section title="Equipment Settings">
-          {renderFormGroup("Squat Rack Height", "squatRackHeight", "e.g., 5")}
-          {renderSelectGroup("Squat Stands", "squatStands", ["IN", "OUT", "LEFT IN", "RIGHT IN"])}
-          {renderFormGroup("Bench Rack Height", "benchRackHeight", "e.g., 3")}
-          {renderSelectGroup("Hand Out", "handOut", ["Yes", "Self"])}
-          {renderFormGroup("Bench Safety Height", "benchSafetyHeight", "e.g., 2")}
+          {renderFormGroup("Squat Rack Height", "squatRackHeight", "e.g., 12")}
+          {renderSelectGroup("Squat Stands", "squatStands", ["In", "Out"])}
+          {renderFormGroup("Bench Rack Height", "benchRackHeight", "e.g., 8")}
+          {renderSelectGroup("Hand Out", "handOut", ["Yes", "No"])}
+          {renderFormGroup("Bench Safety Height", "benchSafetyHeight", "e.g., 4")}
         </Section>
-
-        {(Object.keys(appState.lifts) as LiftType[]).map(liftKey => (
-            <LiftSection
-                key={liftKey}
-                liftType={liftKey}
-                liftState={appState.lifts[liftKey]}
-                onAttemptChange={handleAttemptChange}
-                onWarmupChange={handleWarmupChange}
-                onCueChange={handleCueChange}
-                onCalculateAttempts={handleCalculateAttempts}
-                onGenerateWarmups={handleGenerateWarmups}
-                onReset={handleReset}
-                onCollarToggle={handleCollarToggle}
-            />
-        ))}
-
-        <div className="bg-white p-6 rounded-lg shadow-md mt-8">
-          <h3 className="text-xl font-bold text-slate-700 text-center mb-6 border-b pb-3">Export Your Plan</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center flex flex-col">
-              <h4 className="font-semibold text-slate-800">Desktop PDF</h4>
-              <p className="text-xs text-slate-500 mb-3 flex-grow">Best for printing & landscape view.</p>
-              <div className="flex justify-center gap-3">
-                <button onClick={() => handleSavePdf(false)} className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-md shadow-sm transition-colors">
-                  Save
-                </button>
+        
+        <LiftSection
+          liftType="squat"
+          liftState={appState.lifts.squat}
+          onAttemptChange={handleAttemptChange}
+          onWarmupChange={handleWarmupChange}
+          onCueChange={handleCueChange}
+          onCalculateAttempts={handleCalculateAttempts}
+          onGenerateWarmups={handleGenerateWarmups}
+          onReset={handleReset}
+          onCollarToggle={handleCollarToggle}
+        />
+        <LiftSection
+          liftType="bench"
+          liftState={appState.lifts.bench}
+          onAttemptChange={handleAttemptChange}
+          onWarmupChange={handleWarmupChange}
+          onCueChange={handleCueChange}
+          onCalculateAttempts={handleCalculateAttempts}
+          onGenerateWarmups={handleGenerateWarmups}
+          onReset={handleReset}
+          onCollarToggle={handleCollarToggle}
+        />
+        <LiftSection
+          liftType="deadlift"
+          liftState={appState.lifts.deadlift}
+          onAttemptChange={handleAttemptChange}
+          onWarmupChange={handleWarmupChange}
+          onCueChange={handleCueChange}
+          onCalculateAttempts={handleCalculateAttempts}
+          onGenerateWarmups={handleGenerateWarmups}
+          onReset={handleReset}
+          onCollarToggle={handleCollarToggle}
+        />
+        
+         <div className="bg-white p-6 rounded-lg shadow-md mt-8">
+            <h3 className="text-xl font-bold text-slate-700 mb-4 text-center">Export & Share Plan</h3>
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <button onClick={() => exportToCSV(appState)} className="w-full sm:w-auto px-6 py-3 bg-green-700 hover:bg-green-800 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105">Export to CSV</button>
+                <button onClick={() => handleSavePdf(false)} className="w-full sm:w-auto px-6 py-3 bg-red-700 hover:bg-red-800 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105">Export to PDF (Desktop)</button>
+                <button onClick={() => handleSavePdf(true)} className="w-full sm:w-auto px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105">Export to PDF (Mobile)</button>
                 {canShare && (
-                  <button onClick={() => handleSharePdf(false)} className="flex-1 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-md shadow-sm transition-colors">
-                    Share
-                  </button>
+                    <button onClick={() => handleSharePdf(true)} className="w-full sm:w-auto px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105">Share PDF</button>
                 )}
-              </div>
             </div>
-
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center flex flex-col">
-              <h4 className="font-semibold text-slate-800">Mobile PDF</h4>
-              <p className="text-xs text-slate-500 mb-3 flex-grow">Optimized for portrait view on phone.</p>
-              <div className="flex justify-center gap-3">
-                <button onClick={() => handleSavePdf(true)} className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-md shadow-sm transition-colors">
-                  Save
-                </button>
-                {canShare && (
-                  <button onClick={() => handleSharePdf(true)} className="flex-1 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-md shadow-sm transition-colors">
-                    Share
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 text-center border-t pt-6">
-            <button onClick={() => exportToCSV(appState)} className="px-6 py-2 bg-green-700 hover:bg-green-800 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105">
-                <span className="inline-block mr-2" role="img" aria-label="csv">📥</span> Export as CSV
-            </button>
-          </div>
         </div>
       </main>
 
       {isResetModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 transition-opacity duration-300" role="dialog" aria-modal="true" aria-labelledby="reset-modal-title">
-          <div className="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center transform transition-all duration-300 scale-100">
-            <h2 id="reset-modal-title" className="text-2xl font-bold text-slate-800 mb-4">Confirm Reset</h2>
-            <p className="text-slate-600 mb-6">Are you sure? This will clear all current entries in the form.</p>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={() => setIsResetModalOpen(false)}
-                className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-md transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleFullReset}
-                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition-colors"
-              >
-                Confirm Reset
-              </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-2xl max-w-sm w-full">
+            <h3 className="text-xl font-bold text-slate-800 mb-4">Confirm Reset</h3>
+            <p className="text-slate-600 mb-6">Are you sure you want to completely reset the form? This action cannot be undone.</p>
+            <div className="flex justify-end gap-4">
+              <button onClick={() => setIsResetModalOpen(false)} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-md transition-colors">Cancel</button>
+              <button onClick={handleFullReset} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-md transition-colors">Yes, Reset</button>
             </div>
           </div>
         </div>
