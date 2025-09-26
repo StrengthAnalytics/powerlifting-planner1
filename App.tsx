@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Section from './components/Section';
 import LiftSection from './components/LiftSection';
 import { calculateAttempts, generateWarmups } from './utils/calculator';
-import { exportToCSV, exportToPDF, exportToMobilePDF } from './utils/exportHandler';
+import { exportToCSV, exportToPDF, exportToMobilePDF, savePdf, sharePdf } from './utils/exportHandler';
 import type { AppState, LiftType, CompetitionDetails, EquipmentSettings } from './types';
 
 const initialAppState: AppState = {
@@ -22,6 +22,7 @@ const initialAppState: AppState = {
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(initialAppState);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [canShare, setCanShare] = useState(false);
   
   useEffect(() => {
     try {
@@ -33,6 +34,12 @@ const App: React.FC = () => {
 
       setAppState(prev => ({ ...prev, details, equipment }));
 
+      if (navigator.share && typeof navigator.canShare === 'function') {
+        // Basic check is enough, specific file check will happen in the share handler
+        setCanShare(true);
+      }
+
+    // FIX: Corrected the try-catch block syntax. A missing block `{}` caused a cascade of scope errors.
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
     }
@@ -161,6 +168,18 @@ const App: React.FC = () => {
     setIsResetModalOpen(false);
   }, []);
 
+  const handleSavePdf = (isMobile: boolean) => {
+    const blob = isMobile ? exportToMobilePDF(appState) : exportToPDF(appState);
+    const fileName = `${appState.details.lifterName || 'Lifter'}_Competition_Plan${isMobile ? '_Mobile' : ''}.pdf`;
+    savePdf(blob, fileName);
+  };
+
+  const handleSharePdf = (isMobile: boolean) => {
+    const blob = isMobile ? exportToMobilePDF(appState) : exportToPDF(appState);
+    const fileName = `${appState.details.lifterName || 'Lifter'}_Competition_Plan${isMobile ? '_Mobile' : ''}.pdf`;
+    sharePdf(blob, fileName, appState.details);
+  };
+
   const renderFormGroup = (label: string, id: keyof CompetitionDetails | keyof EquipmentSettings, placeholder: string, type: string = "text") => {
     const value = id in appState.details ? appState.details[id as keyof CompetitionDetails] : appState.equipment[id as keyof EquipmentSettings];
     
@@ -252,16 +271,46 @@ const App: React.FC = () => {
             />
         ))}
 
-        <div className="bg-white p-6 rounded-lg shadow-md mt-8 flex flex-wrap justify-center gap-4">
-            <button onClick={() => exportToPDF(appState)} className="flex items-center gap-2 px-6 py-3 bg-red-700 hover:bg-red-800 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105">
-                <span role="img" aria-label="pdf">🧾</span> Export PDF
+        <div className="bg-white p-6 rounded-lg shadow-md mt-8">
+          <h3 className="text-xl font-bold text-slate-700 text-center mb-6 border-b pb-3">Export Your Plan</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center flex flex-col">
+              <h4 className="font-semibold text-slate-800">Desktop PDF</h4>
+              <p className="text-xs text-slate-500 mb-3 flex-grow">Best for printing & landscape view.</p>
+              <div className="flex justify-center gap-3">
+                <button onClick={() => handleSavePdf(false)} className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-md shadow-sm transition-colors">
+                  Save
+                </button>
+                {canShare && (
+                  <button onClick={() => handleSharePdf(false)} className="flex-1 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-md shadow-sm transition-colors">
+                    Share
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center flex flex-col">
+              <h4 className="font-semibold text-slate-800">Mobile PDF</h4>
+              <p className="text-xs text-slate-500 mb-3 flex-grow">Optimized for portrait view on phone.</p>
+              <div className="flex justify-center gap-3">
+                <button onClick={() => handleSavePdf(true)} className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-md shadow-sm transition-colors">
+                  Save
+                </button>
+                {canShare && (
+                  <button onClick={() => handleSharePdf(true)} className="flex-1 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-md shadow-sm transition-colors">
+                    Share
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center border-t pt-6">
+            <button onClick={() => exportToCSV(appState)} className="px-6 py-2 bg-green-700 hover:bg-green-800 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105">
+                <span className="inline-block mr-2" role="img" aria-label="csv">📥</span> Export as CSV
             </button>
-             <button onClick={() => exportToMobilePDF(appState)} className="flex items-center gap-2 px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105">
-                <span role="img" aria-label="mobile">📱</span> Export Mobile PDF
-            </button>
-            <button onClick={() => exportToCSV(appState)} className="flex items-center gap-2 px-6 py-3 bg-green-700 hover:bg-green-800 text-white font-bold rounded-lg shadow-md transition-transform transform hover:scale-105">
-                <span role="img" aria-label="csv">📥</span> Export CSV
-            </button>
+          </div>
         </div>
       </main>
 
