@@ -1,0 +1,5 @@
+{
+  "name": "Powerlifting Competition Planner",
+  "description": "A comprehensive tool for powerlifters to generate a strategic competition plan. Calculate your attempts, generate warm-up sets, and export your entire game day plan to PDF or CSV.",
+  "requestFramePermissions": []
+}
