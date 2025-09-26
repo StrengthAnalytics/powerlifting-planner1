@@ -165,7 +165,6 @@ export const exportToPDF = (state: AppState) => {
         const warmupsWidth = contentWidth - attemptsWidth - 5;
         const attemptsX = margin;
         const warmupsX = margin + attemptsWidth + 5;
-        const startY = yPos;
         let attemptsY = yPos;
         let warmupsY = yPos;
         const cbSize = 4; // Checkbox size
